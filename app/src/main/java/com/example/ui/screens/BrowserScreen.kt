@@ -43,6 +43,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.focus.onFocusChanged
 import com.example.domain.models.BrowserTab
 import com.example.ui.browser.BrowserViewModel
 import com.example.ui.theme.DesignTokens
@@ -128,175 +132,115 @@ fun BrowserScreen(
         return
     }
 
+    val onUrlSubmit: (String) -> Unit = { targetUrl ->
+        var cleanUrl = targetUrl.trim()
+        if (cleanUrl.isNotEmpty()) {
+            if (URLUtil.isValidUrl(cleanUrl)) {
+                activeTab?.webView?.loadUrl(cleanUrl)
+            } else if (cleanUrl.contains(".") && !cleanUrl.contains(" ")) {
+                activeTab?.webView?.loadUrl("https://$cleanUrl")
+            } else {
+                activeTab?.webView?.loadUrl(searchEngineUrl + cleanUrl)
+            }
+        }
+    }
+
     Scaffold(
-        modifier = Modifier.imePadding(),
-        topBar = {
-            TopAppBar(
-                title = {
-                    val isSecure = activeTab?.state?.isSecure == true
-                    OutlinedTextField(
-                        value = urlInput,
-                        onValueChange = { urlInput = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .focusRequester(focusRequester),
-                        placeholder = { Text("Search or type web address", maxLines = 1) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = if (isSecure) Icons.Default.Lock else Icons.Default.Info,
-                                contentDescription = "Security",
-                                modifier = Modifier.size(20.dp),
-                                tint = if (isSecure) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                            )
-                        },
-                        trailingIcon = {
-                            if (activeTab?.state?.isLoading == true) {
-                                IconButton(onClick = { activeTab.webView?.stopLoading() }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Stop", modifier = Modifier.size(20.dp))
-                                }
-                            } else {
-                                IconButton(onClick = { activeTab?.webView?.reload() }) {
-                                    Icon(Icons.Default.Refresh, contentDescription = "Reload", modifier = Modifier.size(20.dp))
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                        keyboardActions = KeyboardActions(onGo = {
-                            focusManager.clearFocus()
-                            var targetUrl = urlInput.trim()
-                            if (targetUrl.isEmpty()) return@KeyboardActions
-                            if (URLUtil.isValidUrl(targetUrl)) {
-                                activeTab?.webView?.loadUrl(targetUrl)
-                            } else if (targetUrl.contains(".") && !targetUrl.contains(" ")) {
-                                activeTab?.webView?.loadUrl("https://$targetUrl")
-                            } else {
-                                activeTab?.webView?.loadUrl(searchEngineUrl + targetUrl)
-                            }
-                        }),
-                        shape = RoundedCornerShape(DesignTokens.CornerRadiusLarge),
-                        colors = TextFieldDefaults.colors(
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        )
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (isIncognitoSession) Color.DarkGray else MaterialTheme.colorScheme.surface
-                ),
-                windowInsets = WindowInsets.statusBars
-            )
-        },
+        modifier = Modifier.fillMaxSize(),
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            BottomAppBar(
-                containerColor = if (isIncognitoSession) Color.DarkGray else MaterialTheme.colorScheme.surface,
-                contentPadding = WindowInsets.navigationBars.asPaddingValues(),
-                tonalElevation = DesignTokens.ElevationMedium,
-                modifier = Modifier.height(DesignTokens.BottomBarHeight + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = DesignTokens.Spacing8),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+            Box(modifier = Modifier.navigationBarsPadding().imePadding()) {
+                AnimatedVisibility(
+                    visible = !isOmniboxFocused,
+                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
                 ) {
-                    IconButton(
-                        onClick = { activeTab?.webView?.goBack() },
-                        enabled = activeTab?.state?.canGoBack == true
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                    IconButton(
-                        onClick = { activeTab?.webView?.goForward() },
-                        enabled = activeTab?.state?.canGoForward == true
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward")
-                    }
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(DesignTokens.CornerRadiusMedium))
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .clickable { onNavigateToTabs() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("${tabs.size}", color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.titleMedium)
-                    }
-                    IconButton(onClick = { 
-                        var targetUrl = homepageUrl
-                        if (targetUrl.startsWith("http")) activeTab?.webView?.loadUrl(targetUrl)
-                    }) {
-                        Icon(Icons.Default.Home, contentDescription = "Home")
-                    }
-                    IconButton(onClick = { showBottomSheet = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
-                    }
+                    BrowserBottomBar(
+                        isIncognito = isIncognitoSession,
+                        onHomeClick = {
+                            var targetUrl = homepageUrl
+                            if (targetUrl.startsWith("http")) activeTab?.webView?.loadUrl(targetUrl)
+                        },
+                        onTabsClick = onNavigateToTabs,
+                        onBookmarksClick = onNavigateToBookmarks,
+                        onHistoryClick = onNavigateToHistory,
+                        onSettingsClick = { showBottomSheet = true },
+                        modifier = Modifier.padding(bottom = DesignTokens.Spacing8)
+                    )
                 }
             }
         }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures { change, dragAmount ->
-                        change.consume()
-                        if (dragAmount > 50) {
-                            // swipe right
-                        } else if (dragAmount < -50) {
-                            // swipe left
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.statusBarsPadding()) {
+                    BrowserTopBar(
+                        urlInput = urlInput,
+                        onUrlInputChange = { urlInput = it },
+                        onUrlSubmit = onUrlSubmit,
+                        activeTab = activeTab,
+                        tabsCount = tabs.size,
+                        isIncognito = isIncognitoSession,
+                        onGoBack = { activeTab?.webView?.goBack() },
+                        onGoForward = { activeTab?.webView?.goForward() },
+                        onReloadStop = {
+                            if (activeTab?.state?.isLoading == true) activeTab.webView?.stopLoading()
+                            else activeTab?.webView?.reload()
+                        },
+                        onOpenTabs = onNavigateToTabs,
+                        onOpenMenu = { showBottomSheet = true },
+                        isOmniboxFocused = isOmniboxFocused,
+                        onOmniboxFocusChanged = { isOmniboxFocused = it }
+                    )
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .pointerInput(Unit) {
+                            detectHorizontalDragGestures { change, dragAmount ->
+                                change.consume()
+                            }
                         }
-                    }
-                }
-        ) {
-            val currentUrl = activeTab?.state?.url ?: ""
-            if (currentUrl == "about:blank" || currentUrl.isEmpty()) {
-                if (newTabPage == "speed_dial") {
-                    SpeedDialContent(onUrlSubmit = { url -> activeTab?.webView?.loadUrl(url) })
-                } else {
-                    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
-                }
-            } else {
-                PullToRefreshBox(
-                    modifier = Modifier.fillMaxSize(),
-                    state = pullToRefreshState,
-                    isRefreshing = isRefreshing,
-                    onRefresh = { 
-                        isRefreshing = true
-                        activeTab?.webView?.reload() 
-                    }
                 ) {
-                    if (activeTab?.webView != null) {
-                        val isSystemInDarkTheme = isSystemInDarkTheme()
-                        key(activeTabId) {
-                            AndroidView(
-                                factory = { activeTab.webView!! },
-                                modifier = Modifier.fillMaxSize(),
-                                update = { view ->
-                                    val url = activeTab.state.url
-                                    if (url != "about:blank" && url.isNotEmpty()) {
-                                        viewModel.addHistory(url, activeTab.state.title, null)
-                                    }
-                                    viewModel.tabManager.applyDarkTheme(activeTabId ?: "", isSystemInDarkTheme)
-                                }
-                            )
+                    val currentUrl = activeTab?.state?.url ?: ""
+                    if (currentUrl == "about:blank" || currentUrl.isEmpty()) {
+                        if (newTabPage == "speed_dial") {
+                            SpeedDialContent(onUrlSubmit = { url -> activeTab?.webView?.loadUrl(url) })
+                        } else {
+                            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
                         }
                     } else {
-                        Text("No active tab", modifier = Modifier.align(Alignment.Center))
+                        PullToRefreshBox(
+                            modifier = Modifier.fillMaxSize(),
+                            state = pullToRefreshState,
+                            isRefreshing = isRefreshing,
+                            onRefresh = { 
+                                isRefreshing = true
+                                activeTab?.webView?.reload() 
+                            }
+                        ) {
+                            if (activeTab?.webView != null) {
+                                val isSystemInDarkTheme = isSystemInDarkTheme()
+                                key(activeTabId) {
+                                    AndroidView(
+                                        factory = { activeTab.webView!! },
+                                        modifier = Modifier.fillMaxSize(),
+                                        update = { view ->
+                                            val url = activeTab.state.url
+                                            if (url != "about:blank" && url.isNotEmpty()) {
+                                                viewModel.addHistory(url, activeTab.state.title, null)
+                                            }
+                                            viewModel.tabManager.applyDarkTheme(activeTabId ?: "", isSystemInDarkTheme)
+                                        }
+                                    )
+                                }
+                            } else {
+                                Text("No active tab", modifier = Modifier.align(Alignment.Center))
+                            }
+                        }
                     }
                 }
-            }
-
-            if (activeTab?.state?.isLoading == true && activeTab.state.loadingProgress < 100) {
-                LinearProgressIndicator(
-                    progress = { activeTab.state.loadingProgress / 100f },
-                    modifier = Modifier.fillMaxWidth().height(2.dp).align(Alignment.TopCenter),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = Color.Transparent
-                )
             }
         }
     }
@@ -396,5 +340,196 @@ fun SpeedDialContent(onUrlSubmit: (String) -> Unit) {
             }
         }
         Spacer(modifier = Modifier.weight(2f))
+    }
+}
+
+@Composable
+fun BrowserTopBar(
+    urlInput: String,
+    onUrlInputChange: (String) -> Unit,
+    onUrlSubmit: (String) -> Unit,
+    activeTab: BrowserTab?,
+    tabsCount: Int,
+    isIncognito: Boolean,
+    onGoBack: () -> Unit,
+    onGoForward: () -> Unit,
+    onReloadStop: () -> Unit,
+    onOpenTabs: () -> Unit,
+    onOpenMenu: () -> Unit,
+    isOmniboxFocused: Boolean,
+    onOmniboxFocusChanged: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val focusManager = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = DesignTokens.Spacing12, vertical = DesignTokens.Spacing8),
+        shape = RoundedCornerShape(DesignTokens.CornerRadiusExtraLarge),
+        color = if (isIncognito) Color.DarkGray else MaterialTheme.colorScheme.surfaceColorAtElevation(DesignTokens.ElevationLow),
+        tonalElevation = DesignTokens.ElevationLow,
+        shadowElevation = DesignTokens.ElevationLow
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DesignTokens.Spacing8, vertical = DesignTokens.Spacing8),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AnimatedVisibility(visible = !isOmniboxFocused) {
+                    Row {
+                        IconButton(onClick = onGoBack, enabled = activeTab?.state?.canGoBack == true, modifier = Modifier.size(36.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(20.dp))
+                        }
+                        IconButton(onClick = onGoForward, enabled = activeTab?.state?.canGoForward == true, modifier = Modifier.size(36.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward", modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(DesignTokens.CornerRadiusLarge))
+                        .background(if (isIncognito) Color.Gray.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(horizontal = DesignTokens.Spacing12),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    val isSecure = activeTab?.state?.isSecure == true
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AnimatedVisibility(visible = !isOmniboxFocused) {
+                            Row {
+                                Icon(
+                                    imageVector = if (isSecure) Icons.Default.Lock else Icons.Default.Info,
+                                    contentDescription = "Security Status",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isSecure) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.width(DesignTokens.Spacing8))
+                            }
+                        }
+                        
+                        BasicTextField(
+                            value = urlInput,
+                            onValueChange = onUrlInputChange,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { onOmniboxFocusChanged(it.isFocused) },
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                            keyboardActions = KeyboardActions(onGo = {
+                                focusManager.clearFocus()
+                                onUrlSubmit(urlInput)
+                            }),
+                            decorationBox = { innerTextField ->
+                                Box(contentAlignment = Alignment.CenterStart) {
+                                    if (urlInput.isEmpty()) {
+                                        Text("Search or type URL", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                    innerTextField()
+                                }
+                            }
+                        )
+
+                        if (urlInput.isNotEmpty() && isOmniboxFocused) {
+                            IconButton(onClick = { onUrlInputChange("") }, modifier = Modifier.size(28.dp)) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear text", modifier = Modifier.size(16.dp))
+                            }
+                        } else if (!isOmniboxFocused) {
+                            val isLoading = activeTab?.state?.isLoading == true
+                            IconButton(onClick = onReloadStop, modifier = Modifier.size(28.dp)) {
+                                Icon(
+                                    imageVector = if (isLoading) Icons.Default.Close else Icons.Default.Refresh,
+                                    contentDescription = if (isLoading) "Stop loading" else "Reload page",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                AnimatedVisibility(visible = !isOmniboxFocused) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Spacer(modifier = Modifier.width(DesignTokens.Spacing8))
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(DesignTokens.CornerRadiusSmall))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { onOpenTabs() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = tabsCount.toString(), style = MaterialTheme.typography.labelMedium)
+                        }
+                        
+                        IconButton(onClick = onOpenMenu, modifier = Modifier.size(36.dp)) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Menu", modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+            }
+            
+            val isLoading = activeTab?.state?.isLoading == true
+            val progress = activeTab?.state?.loadingProgress ?: 0
+            
+            AnimatedVisibility(visible = isLoading) {
+                LinearProgressIndicator(
+                    progress = { progress / 100f },
+                    modifier = Modifier.fillMaxWidth().height(2.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = Color.Transparent
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun BrowserBottomBar(
+    isIncognito: Boolean,
+    onHomeClick: () -> Unit,
+    onTabsClick: () -> Unit,
+    onBookmarksClick: () -> Unit,
+    onHistoryClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = DesignTokens.Spacing16),
+        shape = RoundedCornerShape(DesignTokens.CornerRadiusExtraLarge),
+        color = if (isIncognito) Color.DarkGray else MaterialTheme.colorScheme.surfaceColorAtElevation(DesignTokens.ElevationHigh),
+        tonalElevation = DesignTokens.ElevationHigh,
+        shadowElevation = DesignTokens.ElevationMedium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = DesignTokens.Spacing16, vertical = DesignTokens.Spacing8),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BottomBarIcon(icon = Icons.Default.Home, description = "Home", onClick = onHomeClick)
+            BottomBarIcon(icon = Icons.Default.Bookmarks, description = "Bookmarks", onClick = onBookmarksClick)
+            BottomBarIcon(icon = Icons.Default.FilterNone, description = "Tabs", onClick = onTabsClick)
+            BottomBarIcon(icon = Icons.Default.History, description = "History", onClick = onHistoryClick)
+            BottomBarIcon(icon = Icons.Default.Settings, description = "Settings", onClick = onSettingsClick)
+        }
+    }
+}
+
+@Composable
+private fun BottomBarIcon(icon: ImageVector, description: String, onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        Icon(imageVector = icon, contentDescription = description)
     }
 }
