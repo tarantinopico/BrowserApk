@@ -58,6 +58,28 @@ fun SettingsScreen(
                         }
                     }
                 )
+
+                val newTabPage by viewModel.settings.newTabPageFlow.collectAsState(initial = "speed_dial")
+                ListItem(
+                    headlineContent = { Text("New Tab Page") },
+                    supportingContent = { Text(if (newTabPage == "speed_dial") "Speed Dial" else if (newTabPage == "homepage") "Homepage" else "Blank") },
+                    modifier = Modifier.clickable {
+                        scope.launch {
+                            val nextMode = when (newTabPage) {
+                                "speed_dial" -> "homepage"
+                                "homepage" -> "blank"
+                                else -> "speed_dial"
+                            }
+                            viewModel.settings.updateNewTabPage(nextMode)
+                        }
+                    }
+                )
+
+                val homepageUrl by viewModel.settings.homepageUrlFlow.collectAsState(initial = "https://www.google.com")
+                ListItem(
+                    headlineContent = { Text("Homepage URL") },
+                    supportingContent = { Text(homepageUrl) }
+                )
                 
                 ListItem(
                     headlineContent = { Text("Desktop Mode Default") },

@@ -49,6 +49,12 @@ class BrowserViewModel(
     val searchEngine = settings.searchEngineFlow
         .stateIn(viewModelScope, SharingStarted.Lazily, "https://www.google.com/search?q=")
 
+    val newTabPage = settings.newTabPageFlow
+        .stateIn(viewModelScope, SharingStarted.Lazily, "speed_dial")
+
+    val homepageUrl = settings.homepageUrlFlow
+        .stateIn(viewModelScope, SharingStarted.Lazily, "https://www.google.com")
+
     init {
         if (tabManager.tabs.value.isEmpty()) {
             tabManager.addNewTab()

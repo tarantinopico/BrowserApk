@@ -6,11 +6,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.core.os.bundleOf
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -93,48 +96,103 @@ fun BrowserApp(viewModel: BrowserViewModel, onViewModelCreated: (BrowserViewMode
         onViewModelCreated(viewModel)
     }
 
-    NavHost(navController = navController, startDestination = "browser") {
-        composable("browser") {
-            BrowserScreen(
-                viewModel = viewModel,
-                onNavigateToTabs = { navController.navigate("tabs") },
-                onNavigateToBookmarks = { navController.navigate("bookmarks") },
-                onNavigateToHistory = { navController.navigate("history") },
-                onNavigateToSettings = { navController.navigate("settings") }
-            )
-        }
-        composable("tabs") {
-            TabsScreen(
-                viewModel = viewModel,
-                onTabSelected = { navController.popBackStack("browser", inclusive = false) },
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-        composable("bookmarks") {
-            BookmarksScreen(
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onBookmarkSelected = { url ->
-                    viewModel.tabManager.getActiveTab()?.webView?.loadUrl(url)
-                    navController.popBackStack("browser", inclusive = false)
+    androidx.compose.foundation.layout.BoxWithConstraints {
+        val isTablet = maxWidth > 600.dp
+
+        if (isTablet) {
+            androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxSize()) {
+                androidx.compose.foundation.layout.Box(modifier = Modifier.width(300.dp).fillMaxHeight()) {
+                    TabsScreen(
+                        viewModel = viewModel,
+                        onTabSelected = { },
+                        onNavigateBack = { }
+                    )
                 }
-            )
-        }
-        composable("history") {
-            HistoryScreen(
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onHistoryItemSelected = { url ->
-                    viewModel.tabManager.getActiveTab()?.webView?.loadUrl(url)
-                    navController.popBackStack("browser", inclusive = false)
+                androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    NavHost(navController = navController, startDestination = "browser") {
+                        composable("browser") {
+                            BrowserScreen(
+                                viewModel = viewModel,
+                                onNavigateToTabs = { /* Disabled on tablet */ },
+                                onNavigateToBookmarks = { navController.navigate("bookmarks") },
+                                onNavigateToHistory = { navController.navigate("history") },
+                                onNavigateToSettings = { navController.navigate("settings") }
+                            )
+                        }
+                        composable("bookmarks") {
+                            BookmarksScreen(
+                                viewModel = viewModel,
+                                onNavigateBack = { navController.popBackStack() },
+                                onBookmarkSelected = { url ->
+                                    viewModel.tabManager.getActiveTab()?.webView?.loadUrl(url)
+                                    navController.popBackStack("browser", inclusive = false)
+                                }
+                            )
+                        }
+                        composable("history") {
+                            HistoryScreen(
+                                viewModel = viewModel,
+                                onNavigateBack = { navController.popBackStack() },
+                                onHistoryItemSelected = { url ->
+                                    viewModel.tabManager.getActiveTab()?.webView?.loadUrl(url)
+                                    navController.popBackStack("browser", inclusive = false)
+                                }
+                            )
+                        }
+                        composable("settings") {
+                            SettingsScreen(
+                                viewModel = viewModel,
+                                onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
+                    }
                 }
-            )
-        }
-        composable("settings") {
-            SettingsScreen(
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            }
+        } else {
+            NavHost(navController = navController, startDestination = "browser") {
+                composable("browser") {
+                    BrowserScreen(
+                        viewModel = viewModel,
+                        onNavigateToTabs = { navController.navigate("tabs") },
+                        onNavigateToBookmarks = { navController.navigate("bookmarks") },
+                        onNavigateToHistory = { navController.navigate("history") },
+                        onNavigateToSettings = { navController.navigate("settings") }
+                    )
+                }
+                composable("tabs") {
+                    TabsScreen(
+                        viewModel = viewModel,
+                        onTabSelected = { navController.popBackStack("browser", inclusive = false) },
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                composable("bookmarks") {
+                    BookmarksScreen(
+                        viewModel = viewModel,
+                        onNavigateBack = { navController.popBackStack() },
+                        onBookmarkSelected = { url ->
+                            viewModel.tabManager.getActiveTab()?.webView?.loadUrl(url)
+                            navController.popBackStack("browser", inclusive = false)
+                        }
+                    )
+                }
+                composable("history") {
+                    HistoryScreen(
+                        viewModel = viewModel,
+                        onNavigateBack = { navController.popBackStack() },
+                        onHistoryItemSelected = { url ->
+                            viewModel.tabManager.getActiveTab()?.webView?.loadUrl(url)
+                            navController.popBackStack("browser", inclusive = false)
+                        }
+                    )
+                }
+                composable("settings") {
+                    SettingsScreen(
+                        viewModel = viewModel,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
         }
     }
 }

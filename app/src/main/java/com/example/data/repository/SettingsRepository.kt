@@ -16,6 +16,8 @@ class SettingsRepository(private val context: Context) {
         val DARK_MODE_PREFERENCE = stringPreferencesKey("dark_mode_preference")
         val JAVASCRIPT_ENABLED = booleanPreferencesKey("javascript_enabled")
         val COOKIES_ENABLED = booleanPreferencesKey("cookies_enabled")
+        val NEW_TAB_PAGE = stringPreferencesKey("new_tab_page")
+        val HOMEPAGE_URL = stringPreferencesKey("homepage_url")
     }
 
     val searchEngineFlow: Flow<String> = context.dataStore.data.map { preferences ->
@@ -38,6 +40,14 @@ class SettingsRepository(private val context: Context) {
         preferences[COOKIES_ENABLED] ?: true
     }
 
+    val newTabPageFlow: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[NEW_TAB_PAGE] ?: "speed_dial" // other options: "blank", "homepage", "custom_url"
+    }
+
+    val homepageUrlFlow: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[HOMEPAGE_URL] ?: "https://www.google.com"
+    }
+
     suspend fun updateSearchEngine(url: String) {
         context.dataStore.edit { preferences -> preferences[SEARCH_ENGINE] = url }
     }
@@ -56,5 +66,13 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun updateCookiesEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences -> preferences[COOKIES_ENABLED] = enabled }
+    }
+
+    suspend fun updateNewTabPage(pageLayout: String) {
+        context.dataStore.edit { preferences -> preferences[NEW_TAB_PAGE] = pageLayout }
+    }
+
+    suspend fun updateHomepageUrl(url: String) {
+        context.dataStore.edit { preferences -> preferences[HOMEPAGE_URL] = url }
     }
 }
