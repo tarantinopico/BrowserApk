@@ -52,6 +52,9 @@ import com.example.ui.browser.BrowserViewModel
 import com.example.ui.theme.DesignTokens
 import kotlinx.coroutines.launch
 
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import com.example.ui.components.TopPullDownPanel
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BrowserScreen(
@@ -77,11 +80,11 @@ fun BrowserScreen(
     val pullToRefreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
 
-    val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    var showBottomSheet by remember { mutableStateOf(false) }
-    
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
+
+    var showTopPanel by remember { mutableStateOf(false) }
+    var panelDragOffset by remember { mutableStateOf(0f) }
 
     // File chooser launcher
     val fileChooserLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
@@ -115,8 +118,8 @@ fun BrowserScreen(
         }
     }
     
-    BackHandler(enabled = showBottomSheet) {
-        showBottomSheet = false
+    BackHandler(enabled = showTopPanel) {
+        showTopPanel = false
     }
 
     if (customView != null) {
@@ -147,33 +150,29 @@ fun BrowserScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        bottomBar = {
-            Box(modifier = Modifier.navigationBarsPadding().imePadding()) {
-                AnimatedVisibility(
-                    visible = !isOmniboxFocused,
-                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
-                ) {
-                    BrowserBottomBar(
-                        isIncognito = isIncognitoSession,
-                        onHomeClick = {
-                            var targetUrl = homepageUrl
-                            if (targetUrl.startsWith("http")) activeTab?.webView?.loadUrl(targetUrl)
-                        },
-                        onTabsClick = onNavigateToTabs,
-                        onBookmarksClick = onNavigateToBookmarks,
-                        onHistoryClick = onNavigateToHistory,
-                        onSettingsClick = { showBottomSheet = true },
-                        modifier = Modifier.padding(bottom = DesignTokens.Spacing8)
-                    )
-                }
-            }
-        }
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Box(modifier = Modifier.statusBarsPadding()) {
+                Box(
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures(
+                                onDragEnd = {
+                                    if (panelDragOffset > 150f) {
+                                        showTopPanel = true
+                                    }
+                                    panelDragOffset = 0f
+                                }
+                            ) { change, dragAmount ->
+                                if (!showTopPanel && dragAmount > 0) {
+                                    panelDragOffset += dragAmount
+                                    change.consume()
+                                }
+                            }
+                        }
+                ) {
                     BrowserTopBar(
                         urlInput = urlInput,
                         onUrlInputChange = { urlInput = it },
@@ -187,8 +186,8 @@ fun BrowserScreen(
                             if (activeTab?.state?.isLoading == true) activeTab.webView?.stopLoading()
                             else activeTab?.webView?.reload()
                         },
-                        onOpenTabs = onNavigateToTabs,
-                        onOpenMenu = { showBottomSheet = true },
+                        onOpenTabs = { showTopPanel = true },
+                        onOpenMenu = { showTopPanel = true },
                         isOmniboxFocused = isOmniboxFocused,
                         onOmniboxFocusChanged = { isOmniboxFocused = it }
                     )
@@ -197,11 +196,6 @@ fun BrowserScreen(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .pointerInput(Unit) {
-                            detectHorizontalDragGestures { change, dragAmount ->
-                                change.consume()
-                            }
-                        }
                 ) {
                     val currentUrl = activeTab?.state?.url ?: ""
                     if (currentUrl == "about:blank" || currentUrl.isEmpty()) {
@@ -242,67 +236,37 @@ fun BrowserScreen(
                     }
                 }
             }
+            
+            TopPullDownPanel(
+                isVisible = showTopPanel,
+                onDismiss = { showTopPanel = false },
+                tabs = tabs,
+                activeTabId = activeTabId,
+                onTabSelected = { 
+                    viewModel.tabManager.selectTab(it)
+                    showTopPanel = false
+                },
+                onCloseTab = { viewModel.tabManager.closeTab(it) },
+                onNewTab = { 
+                    viewModel.tabManager.addNewTab()
+                    showTopPanel = false
+                },
+                onNavigateToSettings = {
+                    showTopPanel = false
+                    onNavigateToSettings()
+                },
+                onNavigateToBookmarks = {
+                    showTopPanel = false
+                    onNavigateToBookmarks()
+                },
+                onNavigateToHistory = {
+                    showTopPanel = false
+                    onNavigateToHistory()
+                },
+                dragOffset = panelDragOffset,
+                isIncognito = isIncognitoSession
+            )
         }
-    }
-
-    if (showBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showBottomSheet = false },
-            sheetState = bottomSheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = DesignTokens.Spacing16, vertical = DesignTokens.Spacing8)
-            ) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    BottomSheetActionIcon(icon = Icons.Default.StarBorder, label = "Bookmark") {
-                        showBottomSheet = false
-                        activeTab?.let { viewModel.addBookmark(it.state.url, it.state.title) }
-                    }
-                    BottomSheetActionIcon(icon = Icons.Default.History, label = "History") {
-                        showBottomSheet = false
-                        onNavigateToHistory()
-                    }
-                    BottomSheetActionIcon(icon = Icons.Default.Bookmarks, label = "Bookmarks") {
-                        showBottomSheet = false
-                        onNavigateToBookmarks()
-                    }
-                    val isDesktop = activeTab?.state?.isDesktopMode == true
-                    BottomSheetActionIcon(icon = if (isDesktop) Icons.Default.PhoneAndroid else Icons.Default.DesktopMac, label = "Desktop") {
-                        showBottomSheet = false
-                        activeTab?.id?.let { viewModel.tabManager.toggleDesktopMode(it) }
-                    }
-                }
-                HorizontalDivider(modifier = Modifier.padding(vertical = DesignTokens.Spacing16))
-                
-                ListItem(
-                    headlineContent = { Text("Settings") },
-                    leadingContent = { Icon(Icons.Default.Settings, contentDescription = null) },
-                    modifier = Modifier.clickable {
-                        showBottomSheet = false
-                        onNavigateToSettings()
-                    }
-                )
-                Spacer(modifier = Modifier.height(WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()))
-            }
-        }
-    }
-}
-
-@Composable
-fun BottomSheetActionIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick).padding(DesignTokens.Spacing8)
-    ) {
-        Box(
-            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(DesignTokens.CornerRadiusMedium)).background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = label)
-        }
-        Spacer(modifier = Modifier.height(DesignTokens.Spacing4))
-        Text(label, style = MaterialTheme.typography.labelMedium)
     }
 }
 
@@ -492,44 +456,5 @@ fun BrowserTopBar(
     }
 }
 
-@Composable
-fun BrowserBottomBar(
-    isIncognito: Boolean,
-    onHomeClick: () -> Unit,
-    onTabsClick: () -> Unit,
-    onBookmarksClick: () -> Unit,
-    onHistoryClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = DesignTokens.Spacing16),
-        shape = RoundedCornerShape(DesignTokens.CornerRadiusExtraLarge),
-        color = if (isIncognito) Color.DarkGray else MaterialTheme.colorScheme.surfaceColorAtElevation(DesignTokens.ElevationHigh),
-        tonalElevation = DesignTokens.ElevationHigh,
-        shadowElevation = DesignTokens.ElevationMedium
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = DesignTokens.Spacing16, vertical = DesignTokens.Spacing8),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            BottomBarIcon(icon = Icons.Default.Home, description = "Home", onClick = onHomeClick)
-            BottomBarIcon(icon = Icons.Default.Bookmarks, description = "Bookmarks", onClick = onBookmarksClick)
-            BottomBarIcon(icon = Icons.Default.FilterNone, description = "Tabs", onClick = onTabsClick)
-            BottomBarIcon(icon = Icons.Default.History, description = "History", onClick = onHistoryClick)
-            BottomBarIcon(icon = Icons.Default.Settings, description = "Settings", onClick = onSettingsClick)
-        }
-    }
-}
+// Bottom bar removed for minimalist UI
 
-@Composable
-private fun BottomBarIcon(icon: ImageVector, description: String, onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
-        Icon(imageVector = icon, contentDescription = description)
-    }
-}
