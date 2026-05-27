@@ -6,6 +6,7 @@ import android.webkit.WebView
 import androidx.room.Room
 import com.example.data.local.BrowserDatabase
 import com.example.data.repository.BrowserRepository
+import com.example.data.repository.SettingsRepository
 
 class BrowserApplication : Application() {
     lateinit var container: AppContainer
