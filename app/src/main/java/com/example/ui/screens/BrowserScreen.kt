@@ -275,16 +275,16 @@ fun BrowserScreen(
 @Composable
 fun SpeedDialContent(onUrlSubmit: (String) -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(DesignTokens.Spacing16),
+        modifier = Modifier.fillMaxSize().padding(DesignTokens.Spacing24),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(modifier = Modifier.weight(1f))
-        Text("Good Morning", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
-        Spacer(modifier = Modifier.height(DesignTokens.Spacing24))
+        Text("Good Morning", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+        Spacer(modifier = Modifier.height(DesignTokens.Spacing32))
         LazyVerticalGrid(
             columns = GridCells.Fixed(4),
-            horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing12),
-            verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing12),
+            horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing16),
+            verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing16),
             modifier = Modifier.fillMaxWidth()
         ) {
             val topSites = listOf("google.com", "youtube.com", "wikipedia.org", "reddit.com", "amazon.com", "twitter.com", "github.com", "stackoverflow.com")
@@ -295,13 +295,13 @@ fun SpeedDialContent(onUrlSubmit: (String) -> Unit) {
                     modifier = Modifier.clickable { onUrlSubmit("https://www.$site") }.padding(DesignTokens.Spacing4)
                 ) {
                     Box(
-                        modifier = Modifier.size(56.dp).clip(RoundedCornerShape(DesignTokens.CornerRadiusMedium)).background(MaterialTheme.colorScheme.surfaceVariant),
+                        modifier = Modifier.size(64.dp).clip(RoundedCornerShape(DesignTokens.CornerRadiusMedium)).background(MaterialTheme.colorScheme.surfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(site.first().uppercase(), style = MaterialTheme.typography.headlineSmall)
+                        Text(site.first().uppercase(), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
                     }
-                    Spacer(modifier = Modifier.height(DesignTokens.Spacing4))
-                    Text(site.substringBefore("."), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Spacer(modifier = Modifier.height(DesignTokens.Spacing8))
+                    Text(site.substringBefore("."), style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }

@@ -66,7 +66,7 @@ fun TopPullDownPanel(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
+                .background(Color.Black.copy(alpha = 0.6f))
                 .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {
                     onDismiss()
                 }
@@ -78,15 +78,19 @@ fun TopPullDownPanel(
                     .offset { IntOffset(0, dragOffset.roundToInt().coerceAtLeast(0)) }
                     .clip(
                         RoundedCornerShape(
-                            bottomStart = DesignTokens.CornerRadiusLarge,
-                            bottomEnd = DesignTokens.CornerRadiusLarge
+                            bottomStart = DesignTokens.CornerRadiusExtraLarge,
+                            bottomEnd = DesignTokens.CornerRadiusExtraLarge
                         )
                     )
                     .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {},
-                color = if (isIncognito) Color.DarkGray else MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.surface,
                 tonalElevation = DesignTokens.ElevationHigh,
                 shadowElevation = DesignTokens.ElevationHigh
             ) {
+                if (isIncognito) {
+                    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF0A0A0A)))
+                }
+                
                 Column(
                     modifier = Modifier.fillMaxSize().padding(WindowInsets.statusBars.asPaddingValues())
                 ) {
@@ -94,34 +98,34 @@ fun TopPullDownPanel(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(DesignTokens.Spacing16),
+                            .padding(DesignTokens.Spacing24),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Tabs & Menu", style = MaterialTheme.typography.titleLarge)
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Close Panel")
+                        Text("Menu & Tabs", style = MaterialTheme.typography.headlineMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        IconButton(onClick = onDismiss, modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(50))) {
+                            Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Close Panel", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
 
                     // Identity switch row
-                    Box(modifier = Modifier.padding(horizontal = DesignTokens.Spacing16, vertical = DesignTokens.Spacing8)) {
+                    Box(modifier = Modifier.padding(horizontal = DesignTokens.Spacing24, vertical = DesignTokens.Spacing8)) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(DesignTokens.CornerRadiusMedium))
-                                .padding(DesignTokens.Spacing12),
+                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(DesignTokens.CornerRadiusLarge))
+                                .padding(DesignTokens.Spacing16),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.AccountCircle, contentDescription = "Identity")
-                                Spacer(modifier = Modifier.width(DesignTokens.Spacing8))
-                                Text(activeIdentity.name, style = MaterialTheme.typography.bodyMedium)
+                                Icon(Icons.Default.AccountCircle, contentDescription = "Identity", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+                                Spacer(modifier = Modifier.width(DesignTokens.Spacing12))
+                                Text(activeIdentity.name, style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                             }
                             Box {
                                 TextButton(onClick = { showIdentityDropdown = true }) {
-                                    Text("Switch")
+                                    Text("SWITCH", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                                 }
                                 DropdownMenu(
                                     expanded = showIdentityDropdown,
@@ -129,7 +133,7 @@ fun TopPullDownPanel(
                                 ) {
                                     identities.forEach { identity ->
                                         DropdownMenuItem(
-                                            text = { Text(identity.name) },
+                                            text = { Text(identity.name, fontWeight = if (identity.id == activeIdentity.id) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal) },
                                             onClick = {
                                                 showIdentityDropdown = false
                                                 if (identity.id != activeIdentity.id) {
@@ -143,11 +147,12 @@ fun TopPullDownPanel(
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(DesignTokens.Spacing16))
                     // Main Browser Actions
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = DesignTokens.Spacing16),
+                            .padding(horizontal = DesignTokens.Spacing32),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         QuickAction(Icons.Default.Add, "New Tab", onNewTab)
@@ -156,15 +161,15 @@ fun TopPullDownPanel(
                         QuickAction(Icons.Default.Settings, "Settings", onNavigateToSettings)
                     }
 
-                    Spacer(modifier = Modifier.height(DesignTokens.Spacing16))
-                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(DesignTokens.Spacing24))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
 
                     // Tabs Grid
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(140.dp),
-                        contentPadding = PaddingValues(DesignTokens.Spacing16),
-                        horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing12),
-                        verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing12)
+                        contentPadding = PaddingValues(DesignTokens.Spacing24),
+                        horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing16),
+                        verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing16)
                     ) {
                         items(tabs) { tab ->
                             TabCard(
