@@ -98,15 +98,65 @@ fun TopPullDownPanel(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Tabs", style = MaterialTheme.typography.titleLarge)
-                        IconButton(onClick = onNewTab) {
-                            Icon(Icons.Default.Add, contentDescription = "New Tab")
-                        }
+                        Text("Tabs & Menu", style = MaterialTheme.typography.titleLarge)
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Close Panel")
                         }
                     }
 
+                    // Identity switch row
+                    Box(modifier = Modifier.padding(horizontal = DesignTokens.Spacing16, vertical = DesignTokens.Spacing8)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(DesignTokens.CornerRadiusMedium))
+                                .padding(DesignTokens.Spacing12),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.AccountCircle, contentDescription = "Identity")
+                                Spacer(modifier = Modifier.width(DesignTokens.Spacing8))
+                                Text(activeIdentity.name, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            Box {
+                                TextButton(onClick = { showIdentityDropdown = true }) {
+                                    Text("Switch")
+                                }
+                                DropdownMenu(
+                                    expanded = showIdentityDropdown,
+                                    onDismissRequest = { showIdentityDropdown = false }
+                                ) {
+                                    identities.forEach { identity ->
+                                        DropdownMenuItem(
+                                            text = { Text(identity.name) },
+                                            onClick = {
+                                                showIdentityDropdown = false
+                                                if (identity.id != activeIdentity.id) {
+                                                    onSwitchIdentity(identity.id)
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Main Browser Actions
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = DesignTokens.Spacing16),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        QuickAction(Icons.Default.Add, "New Tab", onNewTab)
+                        QuickAction(Icons.Default.Bookmarks, "Bookmarks", onNavigateToBookmarks)
+                        QuickAction(Icons.Default.History, "History", onNavigateToHistory)
+                        QuickAction(Icons.Default.Settings, "Settings", onNavigateToSettings)
+                    }
+
+                    Spacer(modifier = Modifier.height(DesignTokens.Spacing16))
                     HorizontalDivider()
 
                     // Tabs Grid

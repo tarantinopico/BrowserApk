@@ -284,7 +284,7 @@ class TabManager(private val applicationContext: Context) {
         customViewCallback = null
     }
 
-    fun updateTabState(id: String, update: (TabState) -> TabState) {
+    private fun updateTabState(id: String, update: (TabState) -> TabState) {
         _tabs.update { currentTabs ->
             currentTabs.map { tab ->
                 if (tab.id == id) {

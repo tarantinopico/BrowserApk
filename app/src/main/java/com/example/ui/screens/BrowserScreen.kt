@@ -53,9 +53,7 @@ import com.example.ui.theme.DesignTokens
 import kotlinx.coroutines.launch
 
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.border
 import com.example.ui.components.TopPullDownPanel
-import com.example.ui.components.BrowserTopMenu
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,7 +87,6 @@ fun BrowserScreen(
     val focusRequester = remember { FocusRequester() }
 
     var showTopPanel by remember { mutableStateOf(false) }
-    var showTopMenu by remember { mutableStateOf(false) }
     var panelDragOffset by remember { mutableStateOf(0f) }
 
     // File chooser launcher
@@ -191,10 +188,7 @@ fun BrowserScreen(
                             else activeTab?.webView?.reload()
                         },
                         isOmniboxFocused = isOmniboxFocused,
-                        onOmniboxFocusChanged = { isOmniboxFocused = it },
-                        tabCount = tabs.size,
-                        onTabsClick = { showTopPanel = true },
-                        onMenuClick = { showTopMenu = true }
+                        onOmniboxFocusChanged = { isOmniboxFocused = it }
                     )
                 }
                 
@@ -274,41 +268,6 @@ fun BrowserScreen(
                 identities = identities,
                 onSwitchIdentity = { viewModel.switchIdentity(it) }
             )
-            
-            BrowserTopMenu(
-                isVisible = showTopMenu,
-                onDismiss = { showTopMenu = false },
-                onNewTab = { viewModel.tabManager.addNewTab() },
-                onNewIncognitoTab = { viewModel.tabManager.addNewTab(isIncognito = true) },
-                onBookmarks = onNavigateToBookmarks,
-                onHistory = onNavigateToHistory,
-                onSettings = onNavigateToSettings,
-                onShare = {
-                    val url = activeTab?.state?.url ?: return@BrowserTopMenu
-                    val sendIntent = android.content.Intent().apply {
-                        action = android.content.Intent.ACTION_SEND
-                        putExtra(android.content.Intent.EXTRA_TEXT, url)
-                        type = "text/plain"
-                    }
-                    val shareIntent = android.content.Intent.createChooser(sendIntent, null)
-                    context.startActivity(shareIntent)
-                },
-                onDesktopModeToggle = {
-                    val currentTab = activeTab ?: return@BrowserTopMenu
-                    viewModel.tabManager.updateTabState(currentTab.id) { state ->
-                        state.copy(isDesktopMode = !state.isDesktopMode)
-                    }
-                },
-                onClearData = {
-                    activeTab?.webView?.clearCache(true)
-                    android.webkit.CookieManager.getInstance().removeAllCookies(null)
-                    android.webkit.WebStorage.getInstance().deleteAllData()
-                },
-                isDesktopMode = activeTab?.state?.isDesktopMode == true,
-                activeIdentityName = activeIdentity.name,
-                identities = identities,
-                onSwitchIdentity = { viewModel.switchIdentity(it) }
-            )
         }
     }
 }
@@ -361,9 +320,6 @@ fun BrowserTopBar(
     onReloadStop: () -> Unit,
     isOmniboxFocused: Boolean,
     onOmniboxFocusChanged: (Boolean) -> Unit,
-    tabCount: Int = 1,
-    onTabsClick: () -> Unit = {},
-    onMenuClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
@@ -454,45 +410,6 @@ fun BrowserTopBar(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                        }
-                    }
-                }
-                
-                AnimatedVisibility(visible = !isOmniboxFocused) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Spacer(modifier = Modifier.width(DesignTokens.Spacing8))
-                        
-                        // Tab Count Button
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Color.Transparent)
-                                .clickable { onTabsClick() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(2.dp)
-                                    .border(
-                                        2.dp,
-                                        MaterialTheme.colorScheme.onSurfaceVariant,
-                                        RoundedCornerShape(6.dp)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = tabCount.toString(),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        
-                        // Menu Button
-                        IconButton(onClick = onMenuClick, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
