@@ -165,9 +165,15 @@ fun TopPullDownPanel(
                     HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
 
                     // Tabs Grid
+                    val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(140.dp),
-                        contentPadding = PaddingValues(DesignTokens.Spacing24),
+                        contentPadding = PaddingValues(
+                            start = DesignTokens.Spacing24,
+                            top = DesignTokens.Spacing24,
+                            end = DesignTokens.Spacing24,
+                            bottom = DesignTokens.Spacing24 + navBarPadding
+                        ),
                         horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing16),
                         verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing16)
                     ) {

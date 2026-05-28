@@ -163,6 +163,8 @@ fun BrowserScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .navigationBarsPadding()
+                    .imePadding()
                     .then(if (showTopPanel) Modifier.blur(20.dp) else Modifier)
             ) {
                 Column(
