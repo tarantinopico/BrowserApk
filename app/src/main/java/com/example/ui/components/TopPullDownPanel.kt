@@ -66,7 +66,7 @@ fun TopPullDownPanel(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.6f))
+                .background(Color.Black.copy(alpha = 0.3f))
                 .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {
                     onDismiss()
                 }
@@ -83,8 +83,8 @@ fun TopPullDownPanel(
                         )
                     )
                     .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {},
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = DesignTokens.ElevationHigh,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                tonalElevation = 0.dp,
                 shadowElevation = DesignTokens.ElevationHigh
             ) {
                 if (isIncognito) {

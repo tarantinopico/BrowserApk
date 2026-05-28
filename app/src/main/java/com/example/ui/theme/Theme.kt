@@ -13,26 +13,28 @@ import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme =
   darkColorScheme(
-    primary = NeonBlueDark,
-    background = SlateBackgroundDark,
-    surface = SlateSurfaceDark,
-    onPrimary = Color.Black,
-    onBackground = DarkText,
-    onSurface = DarkText,
-    surfaceVariant = Color(0xFF2C2C2C),
-    onSurfaceVariant = Color(0xFFA0A0A0)
+    primary = iOSSystemBlue,
+    background = iOSBlack,
+    surface = iOSBlack,
+    surfaceTint = iOSDarkGray,
+    onPrimary = iOSWhite,
+    onBackground = iOSOnDarkText,
+    onSurface = iOSOnDarkText,
+    surfaceVariant = iOSDarkGray,
+    onSurfaceVariant = Color(0xFFEBEBF5).copy(alpha = 0.6f)
   )
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = BrightBlueLight,
-    background = OffWhiteBackgroundLight,
-    surface = LightSurface,
-    onPrimary = Color.White,
-    onBackground = LightText,
-    onSurface = LightText,
-    surfaceVariant = Color(0xFFE5E5EA),
-    onSurfaceVariant = Color(0xFF555555)
+    primary = iOSSystemBlueLight,
+    background = iOSWhite,
+    surface = iOSWhite,
+    surfaceTint = iOSLightGray,
+    onPrimary = iOSWhite,
+    onBackground = iOSOnLightText,
+    onSurface = iOSOnLightText,
+    surfaceVariant = iOSLightGray,
+    onSurfaceVariant = Color(0xFF3C3C43).copy(alpha = 0.6f)
   )
 
 @Composable

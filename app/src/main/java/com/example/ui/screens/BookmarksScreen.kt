@@ -43,25 +43,26 @@ fun BookmarksScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier.padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(padding).fillMaxSize()
             ) {
                 items(bookmarks) { bookmark ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth().clickable { onBookmarkSelected(bookmark.url) }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onBookmarkSelected(bookmark.url) }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                     ) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(bookmark.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(bookmark.url, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                            IconButton(onClick = { viewModel.removeBookmark(bookmark) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete Bookmark")
-                            }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(bookmark.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(bookmark.url, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        IconButton(onClick = { viewModel.removeBookmark(bookmark) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete Bookmark", tint = MaterialTheme.colorScheme.error)
                         }
                     }
+                    HorizontalDivider(modifier = Modifier.padding(start = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
                 }
             }
         }

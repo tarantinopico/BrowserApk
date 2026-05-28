@@ -30,6 +30,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -125,6 +126,9 @@ fun BrowserScreen(
         showTopPanel = false
     }
 
+    val historyItems by viewModel.history.collectAsState()
+    val bookmarks by viewModel.bookmarks.collectAsState()
+
     if (customView != null) {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
             AndroidView(factory = { customView!! }, modifier = Modifier.fillMaxSize())
@@ -156,8 +160,12 @@ fun BrowserScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Box(
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (showTopPanel) Modifier.blur(20.dp) else Modifier)
+            ) {
+                Column(
                     modifier = Modifier
                         .statusBarsPadding()
                         .pointerInput(Unit) {
@@ -190,6 +198,46 @@ fun BrowserScreen(
                         isOmniboxFocused = isOmniboxFocused,
                         onOmniboxFocusChanged = { isOmniboxFocused = it }
                     )
+                    
+                    // Suggestions (Autocomplete Box)
+                    AnimatedVisibility(visible = isOmniboxFocused && urlInput.isNotEmpty()) {
+                        val suggestions = remember(urlInput, historyItems, bookmarks) {
+                            val lowerInput = urlInput.lowercase()
+                            val h = historyItems.filter { it.url.lowercase().contains(lowerInput) || it.title.lowercase().contains(lowerInput) }.map { it.url }
+                            val b = bookmarks.filter { it.url.lowercase().contains(lowerInput) || it.title.lowercase().contains(lowerInput) }.map { it.url }
+                            (h + b).distinct().take(6)
+                        }
+                        
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = DesignTokens.Spacing12),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(bottomStart = DesignTokens.CornerRadiusMedium, bottomEnd = DesignTokens.CornerRadiusMedium),
+                            shadowElevation = DesignTokens.ElevationLow
+                        ) {
+                            Column {
+                                ListItem(
+                                    headlineContent = { Text("Search for \"$urlInput\"", style = MaterialTheme.typography.bodyMedium) },
+                                    leadingContent = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                    modifier = Modifier.clickable { 
+                                        onUrlSubmit(urlInput)
+                                        focusManager.clearFocus()
+                                    }
+                                )
+                                suggestions.forEach { suggestion ->
+                                    ListItem(
+                                        headlineContent = { Text(suggestion, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall) },
+                                        leadingContent = { Icon(Icons.Default.History, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                        modifier = Modifier.clickable { 
+                                            onUrlSubmit(suggestion)
+                                            focusManager.clearFocus()
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
                 
                 Box(
