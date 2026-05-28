@@ -14,6 +14,7 @@ import android.webkit.WebView
 import android.webkit.WebStorage
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
+import androidx.webkit.ProfileStore
 import com.example.domain.models.BrowserTab
 import com.example.domain.models.TabState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -156,9 +157,20 @@ class TabManager(private val applicationContext: Context) {
         }
     }
     
-    private fun createWebView(tabId: String, initialUrl: String, isIncognito: Boolean): WebView {
+    private fun createWebView(tabId: String, initialUrl: String, isIncognito: Boolean, identityId: String = "default"): WebView {
         val context = baseContextWrapper ?: MutableContextWrapper(applicationContext)
-        val webView = WebView(context).apply {
+        val webView = WebView(context)
+        
+        try {
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)) {
+                val profileName = if (isIncognito) "incognito_$identityId" else "identity_$identityId"
+                androidx.webkit.WebViewCompat.setProfile(webView, profileName)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        webView.apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = !isIncognito
             settings.defaultTextEncodingName = "utf-8"
@@ -191,6 +203,31 @@ class TabManager(private val applicationContext: Context) {
                     }
                 },
                 onPageFinishedUpdate = { url, title, canGoBack, canGoForward ->
+                    var thumbnailBitmap: android.graphics.Bitmap? = null
+                    val scope = this@apply.handler
+                    scope?.postDelayed({
+                        try {
+                            if (this@apply.width > 0 && this@apply.height > 0) {
+                                val scale = 0.25f // 1/4 size
+                                val width = (this@apply.width * scale).toInt()
+                                val height = (this@apply.height * scale).toInt()
+                                if (width > 0 && height > 0) {
+                                    val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+                                    val canvas = android.graphics.Canvas(bitmap)
+                                    canvas.scale(scale, scale)
+                                    this@apply.draw(canvas)
+                                    thumbnailBitmap = bitmap
+                                    
+                                    updateTabState(tabId) { 
+                                        it.copy(thumbnail = bitmap)
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }, 500) // Small delay to let rendering finish
+
                     updateTabState(tabId) { 
                         it.copy(
                             isLoading = false,

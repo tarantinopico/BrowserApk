@@ -45,7 +45,9 @@ class MainActivity : ComponentActivity() {
                         factory = BrowserViewModel.provideFactory(
                             applicationContext,
                             appContainer.browserRepository,
-                            appContainer.settingsRepository
+                            appContainer.settingsRepository,
+                            appContainer.identityRepository,
+                            appContainer.tabGroupRepository
                         )
                     )
 

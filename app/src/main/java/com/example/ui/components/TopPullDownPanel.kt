@@ -21,6 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -42,8 +44,13 @@ fun TopPullDownPanel(
     onNavigateToBookmarks: () -> Unit,
     onNavigateToHistory: () -> Unit,
     dragOffset: Float,
-    isIncognito: Boolean
+    isIncognito: Boolean,
+    activeIdentity: com.example.domain.models.BrowserIdentity,
+    identities: List<com.example.domain.models.BrowserIdentity>,
+    onSwitchIdentity: (String) -> Unit
 ) {
+    var showIdentityDropdown by remember { mutableStateOf(false) }
+
     AnimatedVisibility(
         visible = isVisible || dragOffset > 0,
         enter = expandVertically(
@@ -98,22 +105,41 @@ fun TopPullDownPanel(
                     }
 
                     // Identity switch row
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = DesignTokens.Spacing8)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(DesignTokens.CornerRadiusMedium))
-                            .padding(DesignTokens.Spacing12),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.AccountCircle, contentDescription = "Identity")
-                            Spacer(modifier = Modifier.width(DesignTokens.Spacing8))
-                            Text("Personal", style = MaterialTheme.typography.bodyMedium)
-                        }
-                        TextButton(onClick = { /* Switch Identity */ }) {
-                            Text("Switch")
+                    Box(modifier = Modifier.padding(horizontal = DesignTokens.Spacing16, vertical = DesignTokens.Spacing8)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(DesignTokens.CornerRadiusMedium))
+                                .padding(DesignTokens.Spacing12),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.AccountCircle, contentDescription = "Identity")
+                                Spacer(modifier = Modifier.width(DesignTokens.Spacing8))
+                                Text(activeIdentity.name, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            Box {
+                                TextButton(onClick = { showIdentityDropdown = true }) {
+                                    Text("Switch")
+                                }
+                                DropdownMenu(
+                                    expanded = showIdentityDropdown,
+                                    onDismissRequest = { showIdentityDropdown = false }
+                                ) {
+                                    identities.forEach { identity ->
+                                        DropdownMenuItem(
+                                            text = { Text(identity.name) },
+                                            onClick = {
+                                                showIdentityDropdown = false
+                                                if (identity.id != activeIdentity.id) {
+                                                    onSwitchIdentity(identity.id)
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -221,13 +247,22 @@ fun TabCard(
                 modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = tab.state.url.takeIf { it.isNotEmpty() && it != "about:blank" } ?: "New Tab",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    modifier = Modifier.padding(DesignTokens.Spacing8)
-                )
+                if (tab.state.thumbnail != null) {
+                    androidx.compose.foundation.Image(
+                        bitmap = tab.state.thumbnail!!.asImageBitmap(),
+                        contentDescription = "Thumbnail for ${tab.state.title}",
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(
+                        text = tab.state.url.takeIf { it.isNotEmpty() && it != "about:blank" } ?: "New Tab",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(DesignTokens.Spacing8)
+                    )
+                }
             }
         }
     }

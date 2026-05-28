@@ -18,6 +18,15 @@ class SettingsRepository(private val context: Context) {
         val COOKIES_ENABLED = booleanPreferencesKey("cookies_enabled")
         val NEW_TAB_PAGE = stringPreferencesKey("new_tab_page")
         val HOMEPAGE_URL = stringPreferencesKey("homepage_url")
+        val ACTIVE_IDENTITY_ID = stringPreferencesKey("active_identity_id")
+    }
+
+    val activeIdentityIdFlow: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[ACTIVE_IDENTITY_ID] ?: "default"
+    }
+
+    suspend fun updateActiveIdentityId(id: String) {
+        context.dataStore.edit { preferences -> preferences[ACTIVE_IDENTITY_ID] = id }
     }
 
     val searchEngineFlow: Flow<String> = context.dataStore.data.map { preferences ->

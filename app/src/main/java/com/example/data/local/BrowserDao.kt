@@ -43,17 +43,17 @@ interface BrowserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHistory(item: HistoryItem)
 
-    @Query("SELECT * FROM history_table ORDER BY visitedAt DESC")
-    fun getAllHistory(): Flow<List<HistoryItem>>
+    @Query("SELECT * FROM history_table WHERE identityId = :identityId ORDER BY visitedAt DESC")
+    fun getAllHistory(identityId: String): Flow<List<HistoryItem>>
 
-    @Query("SELECT * FROM history_table WHERE title LIKE '%' || :query || '%' OR url LIKE '%' || :query || '%' ORDER BY visitedAt DESC")
-    fun searchHistory(query: String): Flow<List<HistoryItem>>
+    @Query("SELECT * FROM history_table WHERE identityId = :identityId AND (title LIKE '%' || :query || '%' OR url LIKE '%' || :query || '%') ORDER BY visitedAt DESC")
+    fun searchHistory(identityId: String, query: String): Flow<List<HistoryItem>>
 
     @Delete
     suspend fun deleteHistory(item: HistoryItem)
     
-    @Query("DELETE FROM history_table")
-    suspend fun clearHistory()
+    @Query("DELETE FROM history_table WHERE identityId = :identityId")
+    suspend fun clearHistory(identityId: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBookmark(item: BookmarkItem)
@@ -61,15 +61,15 @@ interface BrowserDao {
     @Update
     suspend fun updateBookmark(item: BookmarkItem)
 
-    @Query("SELECT * FROM bookmarks_table ORDER BY createdAt DESC")
-    fun getAllBookmarks(): Flow<List<BookmarkItem>>
+    @Query("SELECT * FROM bookmarks_table WHERE identityId = :identityId ORDER BY createdAt DESC")
+    fun getAllBookmarks(identityId: String): Flow<List<BookmarkItem>>
 
-    @Query("SELECT * FROM bookmarks_table WHERE title LIKE '%' || :query || '%' OR url LIKE '%' || :query || '%' ORDER BY createdAt DESC")
-    fun searchBookmarks(query: String): Flow<List<BookmarkItem>>
+    @Query("SELECT * FROM bookmarks_table WHERE identityId = :identityId AND (title LIKE '%' || :query || '%' OR url LIKE '%' || :query || '%') ORDER BY createdAt DESC")
+    fun searchBookmarks(identityId: String, query: String): Flow<List<BookmarkItem>>
 
     @Delete
     suspend fun deleteBookmark(item: BookmarkItem)
     
-    @Query("SELECT COUNT(*) FROM bookmarks_table WHERE url = :url")
-    suspend fun isBookmarked(url: String): Int
+    @Query("SELECT COUNT(*) FROM bookmarks_table WHERE url = :url AND identityId = :identityId")
+    suspend fun isBookmarked(url: String, identityId: String): Int
 }

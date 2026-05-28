@@ -77,6 +77,9 @@ fun BrowserScreen(
     val newTabPage by viewModel.newTabPage.collectAsState()
     val homepageUrl by viewModel.homepageUrl.collectAsState()
     
+    val activeIdentity by viewModel.activeIdentity.collectAsState()
+    val identities by viewModel.identities.collectAsState()
+
     val pullToRefreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
 
@@ -178,16 +181,12 @@ fun BrowserScreen(
                         onUrlInputChange = { urlInput = it },
                         onUrlSubmit = onUrlSubmit,
                         activeTab = activeTab,
-                        tabsCount = tabs.size,
                         isIncognito = isIncognitoSession,
                         onGoBack = { activeTab?.webView?.goBack() },
-                        onGoForward = { activeTab?.webView?.goForward() },
                         onReloadStop = {
                             if (activeTab?.state?.isLoading == true) activeTab.webView?.stopLoading()
                             else activeTab?.webView?.reload()
                         },
-                        onOpenTabs = { showTopPanel = true },
-                        onOpenMenu = { showTopPanel = true },
                         isOmniboxFocused = isOmniboxFocused,
                         onOmniboxFocusChanged = { isOmniboxFocused = it }
                     )
@@ -264,7 +263,10 @@ fun BrowserScreen(
                     onNavigateToHistory()
                 },
                 dragOffset = panelDragOffset,
-                isIncognito = isIncognitoSession
+                isIncognito = isIncognitoSession,
+                activeIdentity = activeIdentity,
+                identities = identities,
+                onSwitchIdentity = { viewModel.switchIdentity(it) }
             )
         }
     }
@@ -313,13 +315,9 @@ fun BrowserTopBar(
     onUrlInputChange: (String) -> Unit,
     onUrlSubmit: (String) -> Unit,
     activeTab: BrowserTab?,
-    tabsCount: Int,
     isIncognito: Boolean,
     onGoBack: () -> Unit,
-    onGoForward: () -> Unit,
     onReloadStop: () -> Unit,
-    onOpenTabs: () -> Unit,
-    onOpenMenu: () -> Unit,
     isOmniboxFocused: Boolean,
     onOmniboxFocusChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier
@@ -344,13 +342,8 @@ fun BrowserTopBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AnimatedVisibility(visible = !isOmniboxFocused) {
-                    Row {
-                        IconButton(onClick = onGoBack, enabled = activeTab?.state?.canGoBack == true, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(20.dp))
-                        }
-                        IconButton(onClick = onGoForward, enabled = activeTab?.state?.canGoForward == true, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward", modifier = Modifier.size(20.dp))
-                        }
+                    IconButton(onClick = onGoBack, enabled = activeTab?.state?.canGoBack == true, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(20.dp))
                     }
                 }
 
@@ -413,29 +406,10 @@ fun BrowserTopBar(
                                 Icon(
                                     imageVector = if (isLoading) Icons.Default.Close else Icons.Default.Refresh,
                                     contentDescription = if (isLoading) "Stop loading" else "Reload page",
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                        }
-                    }
-                }
-
-                AnimatedVisibility(visible = !isOmniboxFocused) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Spacer(modifier = Modifier.width(DesignTokens.Spacing8))
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(RoundedCornerShape(DesignTokens.CornerRadiusSmall))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable { onOpenTabs() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(text = tabsCount.toString(), style = MaterialTheme.typography.labelMedium)
-                        }
-                        
-                        IconButton(onClick = onOpenMenu, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Menu", modifier = Modifier.size(20.dp))
                         }
                     }
                 }

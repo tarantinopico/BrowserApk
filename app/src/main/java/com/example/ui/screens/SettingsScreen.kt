@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.ui.browser.BrowserViewModel
 import kotlinx.coroutines.launch
+import com.example.domain.models.BrowserIdentity
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,11 +25,14 @@ fun SettingsScreen(
 ) {
     val searchEngine by viewModel.settings.searchEngineFlow.collectAsState(initial = "https://www.google.com/search?q=")
     val isDesktopDefault by viewModel.settings.desktopModeDefaultFlow.collectAsState(initial = false)
-    val darkModePref by viewModel.settings.darkModePreferenceFlow.collectAsState(initial = "system")
     val javascriptEnabled by viewModel.settings.javascriptEnabledFlow.collectAsState(initial = true)
+    
+    val identities by viewModel.identities.collectAsState()
+    val activeIdentity by viewModel.activeIdentity.collectAsState()
     
     val scope = rememberCoroutineScope()
     var showClearDataDialog by remember { mutableStateOf(false) }
+    var showNewIdentityDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -45,6 +52,41 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Identities / Profiles", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    IconButton(onClick = { showNewIdentityDialog = true }) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Identity")
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                identities.forEach { identity ->
+                    ListItem(
+                        headlineContent = { Text(identity.name) },
+                        supportingContent = { if (identity.id == activeIdentity.id) Text("Active") else null },
+                        trailingContent = {
+                            if (identities.size > 1) {
+                                IconButton(onClick = {
+                                    scope.launch { viewModel.identityRepository.deleteIdentity(identity) }
+                                }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        },
+                        modifier = Modifier.clickable {
+                            viewModel.switchIdentity(identity.id)
+                        }
+                    )
+                }
+            }
+            
+            item {
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(16.dp))
                 Text("General", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.height(8.dp))
                 
@@ -103,19 +145,60 @@ fun SettingsScreen(
             }
             
             item {
-                Divider()
+                HorizontalDivider()
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("Privacy & Security", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 ListItem(
                     headlineContent = { Text("Clear Browsing Data") },
-                    supportingContent = { Text("Clear history, cookies, and cache") },
+                    supportingContent = { Text("Clear history, cookies, and cache for current identity") },
                     modifier = Modifier.clickable { showClearDataDialog = true }
                 )
             }
         }
         
+        if (showNewIdentityDialog) {
+            var name by remember { mutableStateOf("") }
+            AlertDialog(
+                onDismissRequest = { showNewIdentityDialog = false },
+                title = { Text("New Identity") },
+                text = {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Identity Name") },
+                        singleLine = true
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        if (name.isNotBlank()) {
+                            scope.launch {
+                                val newId = UUID.randomUUID().toString()
+                                viewModel.identityRepository.insertIdentity(
+                                    BrowserIdentity(
+                                        id = newId,
+                                        name = name.trim(),
+                                        colorAccent = 0xFF4285F4,
+                                        isIncognito = false,
+                                        createdAt = System.currentTimeMillis()
+                                    )
+                                )
+                                viewModel.switchIdentity(newId)
+                            }
+                            showNewIdentityDialog = false
+                        }
+                    }) {
+                        Text("Add")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showNewIdentityDialog = false }) { Text("Cancel") }
+                }
+            )
+        }
+
         if (showClearDataDialog) {
             var clearHistory by remember { mutableStateOf(true) }
             var clearCookies by remember { mutableStateOf(false) }
